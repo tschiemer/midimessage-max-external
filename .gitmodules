@@ -1,0 +1,6 @@
+[submodule "deps/min-api"]
+	path = deps/min-api
+	url = https://github.com/Cycling74/min-api
+[submodule "deps/midimessage"]
+	path = deps/midimessage
+	url = https://github.com/tschiemer/midimessage
