@@ -1,47 +1,56 @@
 cmake_minimum_required(VERSION 3.0)
+project(midimessage_max_external)
 
+# Configuration
+set(C74_MIN_API_DIR ${CMAKE_CURRENT_SOURCE_DIR}/deps/min-api)
+set(MIDIMESSAGE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/deps/midimessage)
+set(ENABLE_TESTING false)
+
+
+# (MAX MIN-API) ?
 string(REGEX REPLACE "(.*)/" "" THIS_PACKAGE_NAME "${CMAKE_CURRENT_SOURCE_DIR}")
 
 
-#if (${CMAKE_GENERATOR} MATCHES "Xcode")
-#    if (${XCODE_VERSION} VERSION_LESS 9)
-#        message(STATUS "Xcode 9 or higher is required. Please install from the Mac App Store.")
-#        return ()
-#    endif ()
-#endif ()
+# (MAX MIN-API)
+if (${CMAKE_GENERATOR} MATCHES "Xcode")
+    if (${XCODE_VERSION} VERSION_LESS 9)
+        message(STATUS "Xcode 9 or higher is required. Please install from the Mac App Store.")
+        return ()
+    endif ()
+endif ()
 
 
-# Fetch the correct version of the min-api
-#message(STATUS "Updating Git Submodules")
-#execute_process(
-#        COMMAND				git submodule update --init --recursive
-#        WORKING_DIRECTORY	"${CMAKE_CURRENT_SOURCE_DIR}"
-#)
-
-set(C74_MIN_API_DIR ${CMAKE_CURRENT_SOURCE_DIR}/deps/min-api)
+# (MAX MIN-API) Fetch the correct version submodules
+message(STATUS "Updating Git Submodules")
+execute_process(
+        COMMAND				git submodule update --init --recursive
+        WORKING_DIRECTORY	"${CMAKE_CURRENT_SOURCE_DIR}"
+)
 
 
-# Misc setup and subroutines
+
+# (MAX MIN-API) Misc setup and subroutines
 include(${C74_MIN_API_DIR}/script/min-package.cmake)
 
-
-# Add unit tests for the API
-#enable_testing()
+# (MAX MIN-API) Add unit tests for the API
+if(${ENABLE_TESTING})
+    enable_testing()
+endif()
 add_subdirectory(${C74_MIN_API_DIR})
 
 
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/deps/midimessage)
+# Add midimessage library and includes
+add_subdirectory(${MIDIMESSAGE_DIR})
+set(MIDIMESSAGE_INCLUDES ${MIDIMESSAGE_DIR}/include)
 
 
-
-
-# Add the Lib, if it exists
+# (MAX MIN-API) Add the Lib, if it exists
 if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/deps/min-lib/CMakeLists.txt")
     add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/deps/min-lib)
 endif ()
 
 
-# Generate a project for every folder in the "source/projects" folder
+# (MAX MIN-API) Generate a project for every folder in the "source/projects" folder
 SUBDIRLIST(PROJECT_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/src/)
 foreach (project_dir ${PROJECT_DIRS})
     if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/${project_dir}/CMakeLists.txt")
