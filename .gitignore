@@ -1,0 +1,13 @@
+# Build dirs
+/bin
+/externals
+/lib
+
+# CMAKE
+CMakeCache.txt
+CMakeFiles/
+Makefile
+cmake_install.cmake
+
+# IDE
+.idea
