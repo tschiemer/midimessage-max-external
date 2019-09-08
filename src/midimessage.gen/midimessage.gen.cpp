@@ -29,13 +29,14 @@ public:
 //                               }
 //    };
 
-    message<threadsafe::yes> anything { this, "anything", "Operate on the list. Either add it to the collection or calculate the mean.",
+    message<threadsafe::yes> anything { this, "anything", "Generation command (list)",
         MIN_FUNCTION {
 
                 // convert argument list into usable form
                 // https://stackoverflow.com/questions/26032039/convert-vectorstring-into-char-c
                 std::vector < string > strings = from_atoms < std::vector < string >> (args);
                 std::vector<uint8_t*> cstrings;
+
                 cstrings.reserve(strings.size());
 
                 for(auto& s: strings){
