@@ -33,10 +33,7 @@ public:
     message<threadsafe::yes> anything { this, "anything", "Operate on the list. Either add it to the collection or calculate the mean.",
         MIN_FUNCTION {
 
-                //https://stackoverflow.com/questions/26032039/convert-vectorstring-into-char-c
-
-
-                lock lock {m_mutex};
+                // https://stackoverflow.com/questions/26032039/convert-vectorstring-into-char-c
 
                 std::vector < string > strings = from_atoms < std::vector < string >> (args);
                 std::vector<uint8_t*> cstrings;
@@ -109,17 +106,10 @@ public:
 
                 }
 
-                lock.unlock();
 
                 return {};
         }
     };
-
-
-private:
-    mutex m_mutex;
-
-
 
 };
 
