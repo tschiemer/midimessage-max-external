@@ -18,16 +18,21 @@ string(REGEX REPLACE "(.*)/" "" THIS_PACKAGE_NAME "${CMAKE_CURRENT_SOURCE_DIR}")
 #        WORKING_DIRECTORY	"${CMAKE_CURRENT_SOURCE_DIR}"
 #)
 
+set(C74_MIN_API_DIR ${CMAKE_CURRENT_SOURCE_DIR}/deps/min-api)
+
 
 # Misc setup and subroutines
-include(${CMAKE_CURRENT_SOURCE_DIR}/deps/min-api/script/min-package.cmake)
+include(${C74_MIN_API_DIR}/script/min-package.cmake)
 
 
 # Add unit tests for the API
 #enable_testing()
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/deps/min-api)
+add_subdirectory(${C74_MIN_API_DIR})
+
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/deps/midimessage)
+
+
 
 
 # Add the Lib, if it exists

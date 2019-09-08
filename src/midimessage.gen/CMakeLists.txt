@@ -1,16 +1,10 @@
 cmake_minimum_required(VERSION 3.0)
 
-set(C74_MIN_API_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../deps/min-api)
-include(${C74_MIN_API_DIR}/script/min-pretarget.cmake)
+# Setup script pre-target
+include(${CMAKE_SOURCE_DIR}/scripts/pretarget.cmake)
 
-# path fix
 
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../../externals")
-
-#############################################################
-# MAX EXTERNAL
-#############################################################
-
+############# Target Setup
 
 include_directories(
         "${C74_INCLUDES}"
@@ -31,11 +25,9 @@ add_library(
 
 target_link_libraries(${PROJECT_NAME} PUBLIC midimessage)
 
-include(${C74_MIN_API_DIR}/script/min-posttarget.cmake)
+############# / Target Setup
 
 
-#############################################################
-# UNIT TEST
-#############################################################
+# Post-target finish script
+include(${CMAKE_SOURCE_DIR}/scripts/posttarget.cmake)
 
-include(${C74_MIN_API_DIR}/test/min-object-unittest.cmake)
