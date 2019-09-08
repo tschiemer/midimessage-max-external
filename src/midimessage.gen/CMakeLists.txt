@@ -8,22 +8,15 @@ include(${CMAKE_SOURCE_DIR}/scripts/pretarget.cmake)
 
 include_directories(
         "${C74_INCLUDES}"
-        ${CMAKE_CURRENT_SOURCE_DIR}/../../deps/midimessage/include
+        "${MIDIMESSAGE_INCLUDES}"
 )
 
+set( SOURCE_FILES ${PROJECT_NAME}.cpp )
 
-set( SOURCE_FILES
-        ${PROJECT_NAME}.cpp
-        )
-
-
-add_library(
-        ${PROJECT_NAME}
-        MODULE
-        ${SOURCE_FILES}
-)
+add_library(${PROJECT_NAME} MODULE ${SOURCE_FILES})
 
 target_link_libraries(${PROJECT_NAME} PUBLIC midimessage)
+
 
 ############# / Target Setup
 
