@@ -2,6 +2,7 @@
 /bin
 /externals
 /lib
+/docs
 
 # CMAKE
 CMakeCache.txt
