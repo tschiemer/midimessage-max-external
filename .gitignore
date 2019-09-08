@@ -3,6 +3,7 @@
 /externals
 /lib
 /docs
+/tests
 
 # CMAKE
 CMakeCache.txt
