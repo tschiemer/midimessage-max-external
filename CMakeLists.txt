@@ -40,7 +40,7 @@ add_subdirectory(${C74_MIN_API_DIR})
 
 
 # Add midimessage library and includes
-add_subdirectory(${MIDIMESSAGE_DIR})
+add_subdirectory(${MIDIMESSAGE_DIR} EXCLUDE_FROM_ALL)
 set(MIDIMESSAGE_INCLUDES ${MIDIMESSAGE_DIR}/include)
 
 
