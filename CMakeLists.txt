@@ -6,6 +6,9 @@ set(C74_MIN_API_DIR ${CMAKE_CURRENT_SOURCE_DIR}/deps/min-api)
 set(MIDIMESSAGE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/deps/midimessage)
 set(ENABLE_TESTING false)
 
+#set(BUNDLE_IDENTIFIER "minimessage.max")
+#set(AUTHOR_DOMAIN "se.filou")
+#set(COPYRIGHT_STRING "2019 Philip Tschiemer")
 
 # (MAX MIN-API) ?
 string(REGEX REPLACE "(.*)/" "" THIS_PACKAGE_NAME "${CMAKE_CURRENT_SOURCE_DIR}")
