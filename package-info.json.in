@@ -1,0 +1,25 @@
+{
+	"author" : "Philip Tschiemer",
+	"description" : "midimessage interface for parsing + generating raw midi message from string based commands and vice versa.",
+	"homepatcher" : "midimessage.maxpat",
+	"max_version_min" : "8.0", "max_version_max" : "none",
+	"name" : "@C74_PACKAGE_NAME@",
+	"os" : {
+		"macintosh" : {
+			"platform" : [ "x64" ],
+			"min_version" : "none"
+		},
+		"windows" : {
+			"platform" : [ "x64" ],
+			"min_version" : "none"
+		}
+	},
+	"package_extra" : {
+		"reverse_domain" : "se.filou",
+		"copyright" : "Copyright (c) 2019 Philip Tschiemer",
+		"bundle_identifier": "midimessage.max"
+	},
+	"tags" : [ ],
+	"version" : "@GIT_VERSION_MAJ@.@GIT_VERSION_MIN@.@GIT_VERSION_SUB@",
+	"website" : "https://github.com/tschiemer/midimessage-max-external"
+}
