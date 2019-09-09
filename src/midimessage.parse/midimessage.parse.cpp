@@ -21,11 +21,34 @@ public:
     outlet<> output	{ this, "(anything) output human readable form of parsed message" };
     outlet<> discarded { this, "(int) discarded bytes output"};
 
-    attribute<bool> runningstatus { this, "runningstatus", false, range { false, true }, title {"Running Status"}, description {"Enable or disable running status explicitly (default = off)"} };
-    attribute<bool> outputdiscardedbytes { this, "outputdiscardedbytes", false, range { false, true }, title {"Output discarded bytes"}, description {"Enable or disable output of (otherwise silently) discarded bytes explicitly (default = off)"} };
+    attribute<bool> runningstatus { this, "runningstatus", false,
+                                    range { false, true },
+                                    title {"Running Status"},
+                                    description {"Enable or disable running status explicitly (default = off)"},
+                                    getter { MIN_GETTER_FUNCTION {
+                                        if (m_parser == NULL){
+                                            return {false};
+                                        }
+                                        return {m_parser->RunningStatusEnabled};
+                                    }},
+                                    setter { MIN_FUNCTION {
+                                        if (m_parser == NULL){
+                                            return args;
+                                        }
+                                        m_parser->RunningStatusEnabled = args[0];
+                                        return {m_parser->RunningStatusEnabled};
+                                    }}
+    };
+
+    attribute<bool> outputdiscardedbytes { this, "outputdiscardedbytes", false,
+                                           range { false, true },
+                                           title {"Output discarded bytes"},
+                                           description {"Enable or disable output of (otherwise silently) discarded bytes explicitly (default = off)"}
+    };
 
 
     midimessage_parse (const atoms& args = {}){
+
 
         m_msg.Data.SysEx.ByteData = m_sysexBuffer;
 
@@ -35,11 +58,10 @@ public:
 //        void (*asdf)(Message_t*) = Lambda::ptr(pm);
 
         m_parser = new Parser(
-            runningstatus,
+            false,
             m_dataBuffer,
             sizeof(m_dataBuffer),
             &m_msg,
-            this,
             [](Message_t * msg, void * context){
                 midimessage_parse * self = (midimessage_parse*)context;
 
@@ -87,12 +109,10 @@ public:
                 }
 
                 self->discarded.send(bytes);
-            }
+            },
+            this
         );
 
-//        m_parser->MessageHandler = [&localOutput](Message_t * msg){
-//
-//        };
 
     };
 
@@ -100,42 +120,28 @@ public:
             delete m_parser;
     };
 
-//    void parsedMessage(Message_t * msg ) {
-//
-//    };
-
-//    message<> maxclass_setup { this, "maxclass_setup",
-//        MIN_FUNCTION {
-//
-//
-//
-//            return {};
-//        }
-//    };
-
 
     message<threadsafe::yes> anything { this, "int", "Operate on the list. Either add it to the collection or calculate the mean.",
         MIN_FUNCTION {
 
-//                cout << "recv " << args.size() << endl;
-//
-//                for(auto v : args){
-//                    cout << v;
-//                }
-//                cout << endl;
+            if (m_parser == NULL){
+                discarded.send(args);
+                return {};
+            }
 
-            // convert argument list into usable form
-            // https://stackoverflow.com/questions/6399090/c-convert-vectorint-to-vectordouble
-            std::vector < int > ints = from_atoms < std::vector < int >> (args);
-            std::vector<uint8_t> uint8s(ints.begin(), ints.end());
+            uint8_t byte = (int)args[0];
 
-            m_parser->receivedData( uint8s.data(), uint8s.size() );
+            m_parser->receivedData( &byte, 1 );
 
-//                for(auto i = 0; i < uint8s.size(); i++){
-//                    cout << (int)uint8s[i];
-//                }
-//                cout << endl;
+            return {};
+        }
+    };
 
+    message<threadsafe::yes> reset {this, "reset", "Reset parser state.",
+        MIN_FUNCTION {
+                if (m_parser != NULL){
+                    m_parser->reset();
+                }
             return {};
         }
     };
