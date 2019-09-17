@@ -26,17 +26,12 @@ public:
                                     title {"Running Status"},
                                     description {"Enable or disable running status explicitly (default = off)"},
                                     getter { MIN_GETTER_FUNCTION {
-                                        if (m_parser == NULL){
-                                            return {false};
-                                        }
-                                        return {m_parser->RunningStatusEnabled};
+                                        return {m_parser.RunningStatusEnabled};
                                     }},
                                     setter { MIN_FUNCTION {
-                                        if (m_parser == NULL){
-                                            return args;
-                                        }
-                                        m_parser->RunningStatusEnabled = args[0];
-                                        return {m_parser->RunningStatusEnabled};
+                                        m_parser.RunningStatusEnabled = args[0];
+                                        parser_reset( &m_parser );
+                                        return {m_parser.RunningStatusEnabled};
                                     }}
     };
 
@@ -47,91 +42,61 @@ public:
     };
 
 
-    midimessage_parse (const atoms& args = {}){
+    static void messageHandler(Message_t * msg, void * context){
+        midimessage_parse * self = (midimessage_parse*)context;
 
+        uint8_t str[256];
 
-        m_msg.Data.SysEx.ByteData = m_sysexBuffer;
+        int length = MessagetoString(str, msg);
 
-//
-//        auto discardedBytesCallback =
+        if (length == 0){
+            return;
+        }
 
-//        void (*asdf)(Message_t*) = Lambda::ptr(pm);
+        uint8_t * cur = str;
+        atoms result;
 
-        m_parser = new Parser(
-            false,
-            m_dataBuffer,
-            sizeof(m_dataBuffer),
-            &m_msg,
-            [](Message_t * msg, void * context){
-                midimessage_parse * self = (midimessage_parse*)context;
-
-                uint8_t str[256];
-
-                Stringifier stringifier;
-
-                int length = stringifier.toString(str, msg);
-
-                if (length == 0){
-                    return;
-                }
-
-                uint8_t * cur = str;
-                atoms result;
-
-                for(auto i = 0; i < length; i++){
-                    if (str[i] == ' '){
-                        str[i] = '\0';
-
-                        result.push_back( (char*)cur);
-
-                        cur = &str[i+1];
-                    }
-                }
+        for(auto i = 0; i < length; i++){
+            if (str[i] == ' '){
+                str[i] = '\0';
 
                 result.push_back( (char*)cur);
 
-                self->output(result);
-            },
-            [](uint8_t * discardedBytes, uint8_t length, void * context) {
-
-                midimessage_parse * self = (midimessage_parse*)context;
-
-                if (self->outputdiscardedbytes == false){
-                    return;
-                }
-
-                atoms bytes;
-
-                bytes.reserve(length);
-
-                for(auto i = 0; i < length; i++){
-                    bytes.push_back((int)discardedBytes[i]);
-                }
-
-                self->discarded.send(bytes);
-            },
-            this
-        );
-
-
-    };
-
-    ~midimessage_parse () {
-            delete m_parser;
-    };
-
-
-    message<threadsafe::yes> anything { this, "int", "Operate on the list. Either add it to the collection or calculate the mean.",
-        MIN_FUNCTION {
-
-            if (m_parser == NULL){
-                discarded.send(args);
-                return {};
+                cur = &str[i+1];
             }
+        }
+
+        result.push_back( (char*)cur);
+
+        self->output(result);
+    };
+
+    static void discardedHandler(uint8_t * discardedBytes, uint8_t length, void * context) {
+
+        midimessage_parse * self = (midimessage_parse*)context;
+
+        if (self->outputdiscardedbytes == false){
+            return;
+        }
+
+        atoms bytes;
+
+        bytes.reserve(length);
+
+        for(auto i = 0; i < length; i++){
+            bytes.push_back((int)discardedBytes[i]);
+        }
+
+        self->discarded.send(bytes);
+    };
+
+
+    message<threadsafe::yes> anything { this, "int", "Incoming MIDI data byte",
+        MIN_FUNCTION {
 
             uint8_t byte = (int)args[0];
 
-            m_parser->receivedData( &byte, 1 );
+            parser_receivedData( &m_parser, &byte, 1 );
 
             return {};
         }
@@ -139,9 +104,7 @@ public:
 
     message<threadsafe::yes> reset {this, "reset", "Reset parser state.",
         MIN_FUNCTION {
-                if (m_parser != NULL){
-                    m_parser->reset();
-                }
+            parser_reset( &m_parser );
             return {};
         }
     };
@@ -150,9 +113,21 @@ public:
 private:
 
     uint8_t m_sysexBuffer[128];
-    Message_t m_msg;
-    uint8_t m_dataBuffer[128];
-    Parser * m_parser;
+    Message_t m_msg = {
+            .Data.SysEx.ByteData = m_sysexBuffer
+    };
+    uint8_t m_streamBuffer[128];
+    Parser_t m_parser = {
+            .RunningStatusEnabled = false,
+            .Buffer = m_streamBuffer,
+            .MaxLength = 128,
+            .Message = &m_msg,
+            .MessageHandler = messageHandler,
+            .DiscardingDataHandler = discardedHandler,
+            .Context = this,
+            .Length = 0
+
+    };
 
 };
 

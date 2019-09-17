@@ -20,7 +20,23 @@ public:
     outlet<> output	{ this, "(anything) output raw MIDI message as list of byte integers" };
     outlet<> error { this, "(anything) error output"};
 
-    attribute<bool> runningstatus { this, "runningstatus", false, range { false, true }, title {"Running Status"}, description {"Enable or disable running status explicitly (default = off)"} };
+    attribute<bool> runningstatus { this, "runningstatus", false,
+                                    range { false, true },
+                                    title {"Running Status"},
+                                    description {"Enable or disable running status explicitly (default = off)"},
+                                    getter{
+                                        MIN_GETTER_FUNCTION {
+                                            return {m_runningStatusEnabled};
+                                        }
+                                    },
+                                    setter {
+                                        MIN_FUNCTION {
+                                            m_runningStatusEnabled = args[0];
+                                            m_runningStatusState = MidiMessage_RunningStatusNotSet;
+                                            return {m_runningStatusEnabled};
+                                        }
+                                    }
+        };
 
     // post to max window == but only when the class is loaded the first time
 //    message<> maxclass_setup { this, "maxclass_setup",
@@ -45,7 +61,6 @@ public:
 
 
                 // try parse arguments to populate message
-                Stringifier stringifier;
 
                 uint8_t sysexBuffer[128];
                 Message_t msg;
@@ -54,11 +69,15 @@ public:
                 uint8_t ** argv = cstrings.data();
                 uint8_t argc = cstrings.size();
 
-                int resultCode = stringifier.fromArgs( &msg,  argc, argv );
-
+                int resultCode = MessagefromArgs( &msg,  argc, argv );
 
                 if (StringifierResultOk != resultCode){
 
+
+//                    for(uint8_t i = 1; i < argc; i++){
+//                        argv[i][-1] = ' ';
+////        post("%d = [%s] of [%s]", i-1, argv[i-1], argv[0]);
+//                    }
                     atoms err;
                     err.reserve(args.size() + 1);
 
@@ -74,6 +93,28 @@ public:
                             break;
                         case StringifierResultNoInput:
                             err.push_back("No input");
+                            break;
+
+                        case StringifierResultInvalidU4:
+                            err.push_back("Invalid U4/Nibble Value");
+                            break;
+                        case StringifierResultInvalidU7:
+                            err.push_back("Invalid U7 Value");
+                            break;
+                        case StringifierResultInvalidU14:
+                            err.push_back("Invalid U14 Value");
+                            break;
+                        case StringifierResultInvalidU21:
+                            err.push_back("Invalid U21 Value");
+                            break;
+                        case StringifierResultInvalidU28:
+                            err.push_back("Invalid U28 Value");
+                            break;
+                        case StringifierResultInvalidU35:
+                            err.push_back("Invalid U35 Value");
+                            break;
+                        case StringifierResultInvalidHex:
+                            err.push_back("Invalid Hex Value");
                             break;
                     }
 
@@ -94,12 +135,9 @@ public:
                 }
 
 
-                // optionally remove first (control) byte if runing status enabled and conditions met
-                static uint8_t runningStatusState = MidiMessage_RunningStatusNotSet;
-
                 uint8_t * start = bytes;
 
-                if (runningstatus && updateRunningStatus( &runningStatusState, bytes[0] )){
+                if (m_runningStatusEnabled && updateRunningStatus( &m_runningStatusState, bytes[0] )){
                     start = &start[1];
                     length--;
                 }
@@ -120,6 +158,9 @@ public:
         }
     };
 
+private:
+    bool m_runningStatusEnabled = false;
+    uint8_t m_runningStatusState = MidiMessage_RunningStatusNotSet;
 };
 
 
