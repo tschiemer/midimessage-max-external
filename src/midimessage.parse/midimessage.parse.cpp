@@ -5,12 +5,32 @@
 #include "c74_min.h"
 #include <midimessage/stringifier.h>
 #include <midimessage/parser.h>
+#include <assert.h>
 
 using namespace c74::min;
 using namespace MidiMessage;
 
 
 class midimessage_parse : public object<midimessage_parse> {
+
+private:
+
+    uint8_t m_sysexBuffer[128];
+    Message_t m_msg = {
+            .Data.SysEx.ByteData = m_sysexBuffer
+    };
+    uint8_t m_streamBuffer[128];
+    Parser_t m_parser = {
+            .RunningStatusEnabled = false,
+            .Buffer = m_streamBuffer,
+            .MaxLength = 128,
+            .Message = &m_msg,
+            .MessageHandler = messageHandler,
+            .DiscardingDataHandler = discardedHandler,
+            .Context = this,
+            .Length = 0
+      };
+
 public:
     MIN_DESCRIPTION	{"Parse binary MIDI Message"};
     MIN_TAGS		{"midi"};
@@ -91,16 +111,30 @@ public:
     };
 
 
-    message<threadsafe::yes> anything { this, "int", "Incoming MIDI data byte",
+    message<threadsafe::yes> anything { this, "list", "Incoming MIDI data bytes",
         MIN_FUNCTION {
 
-            uint8_t byte = (int)args[0];
+            // cout << "anything " << args.size() << endl;
 
-            parser_receivedData( &m_parser, &byte, 1 );
+            for (auto i = 0; i < args.size(); i++){
+                handleInt(args[i]);
+            }
 
             return {};
         }
     };
+
+    message<threadsafe::yes> handleInt { this, "int", "Incoming MIDI data byte (single)",
+  MIN_FUNCTION {
+
+                // cout << "int " << (int)args[0] << endl;
+
+                uint8_t byte = (int)args[0];
+
+                parser_receivedData( &m_parser, &byte, 1 );
+
+                return {};
+  }};
 
     message<threadsafe::yes> reset {this, "reset", "Reset parser state.",
         MIN_FUNCTION {
@@ -109,25 +143,6 @@ public:
         }
     };
 
-
-private:
-
-    uint8_t m_sysexBuffer[128];
-    Message_t m_msg = {
-            .Data.SysEx.ByteData = m_sysexBuffer
-    };
-    uint8_t m_streamBuffer[128];
-    Parser_t m_parser = {
-            .RunningStatusEnabled = false,
-            .Buffer = m_streamBuffer,
-            .MaxLength = 128,
-            .Message = &m_msg,
-            .MessageHandler = messageHandler,
-            .DiscardingDataHandler = discardedHandler,
-            .Context = this,
-            .Length = 0
-
-    };
 
 };
 
