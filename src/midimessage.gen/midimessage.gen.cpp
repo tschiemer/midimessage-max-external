@@ -4,6 +4,7 @@
 
 #include "c74_min.h"
 #include <midimessage/stringifier.h>
+#include <midimessage/commonccs.h>
 
 using namespace c74::min;
 using namespace MidiMessage;
@@ -71,13 +72,102 @@ public:
 
                 int resultCode = StringifierResultGenericError;
 
-                // if (strcmp((char*)firstArg[0], "nrpn") != 0){
-                 resultCode = MessagefromArgs( &msg,  argc, argv );
 
-                if (resultCode == StringifierResultOk) {
+                if (strcmp((char*)argv[0], "nrpn") == 0){
+                    if (argc < 4 || 5 < argc) {
+                        generatorError(StringifierResultWrongArgCount, args);
+                        return {};
+                    }
+                    msg.StatusClass = StatusClassControlChange;
+                    msg.Channel = atoi((char*)argv[1]);
+
+                    if (msg.Channel > MaxU7) {
+                        generatorError(StringifierResultInvalidU7, args);
+                        return {};
+                    }
+
+                    uint16_t controller = atoi((char*)argv[2]);
+
+                    if (controller > MaxU14) {
+                        generatorError(StringifierResultInvalidU14, args);
+                        return {};
+                    }
+
+                    uint8_t action = 0;
+                    uint16_t value = 0;
+
+                    if (strcmp((char*)argv[3], "inc") == 0){
+
+                        action = CcDataIncrement;
+
+                        if (argc == 5) {
+                            value = atoi((char*)argv[4]);
+
+                            if (value > MaxU7) {
+                                generatorError(StringifierResultInvalidU14, args);
+                                return {};
+                            }
+                        }
+                    }
+                    else if (strcmp((char*)argv[3], "dec") == 0){
+
+                        action = CcDataDecrement;
+
+                        if (argc == 5) {
+                            value = atoi((char*)argv[4]);
+
+                            if (value > MaxU7) {
+                                generatorError(StringifierResultInvalidU14, args);
+                                return {};
+                            }
+                        }
+
+                    } else {
+
+                      if (argc != 4) {
+                          generatorError(StringifierResultWrongArgCount, args);
+                          return {};
+                      }
+
+                      action = CcDataEntryMSB;
+                      value = atoi((char*)argv[3]);
+
+                      if (value > MaxU14) {
+                          generatorError(StringifierResultInvalidU14, args);
+                          return {};
+                      }
+                    }
+
+                    msg.Data.ControlChange.Controller = CcNonRegisteredParameterMSB;
+                    msg.Data.ControlChange.Value = (controller >> 7) & DataMask;
                     writeMidiPacket(&msg);
+
+                    msg.Data.ControlChange.Controller = CcNonRegisteredParameterLSB;
+                    msg.Data.ControlChange.Value = controller & DataMask;
+                    writeMidiPacket(&msg);
+
+                    if (action == CcDataEntryMSB){
+                        msg.Data.ControlChange.Controller = CcDataEntryMSB;
+                        msg.Data.ControlChange.Value = (value >> 7) & DataMask;
+                        writeMidiPacket(&msg);
+
+                        msg.Data.ControlChange.Controller = CcDataEntryLSB;
+                        msg.Data.ControlChange.Value = value & DataMask;
+                        writeMidiPacket(&msg);
+                    } else {
+                        msg.Data.ControlChange.Controller = action;
+                        msg.Data.ControlChange.Value = value & DataMask;
+                        writeMidiPacket(&msg);
+                    }
+
                 } else {
-                    generateError(resultCode, args);
+                    resultCode = MessagefromArgs( &msg,  argc, argv );
+
+                    if (resultCode == StringifierResultOk) {
+                        writeMidiPacket(&msg);
+                    } else {
+                        generatorError(resultCode, args);
+                    }
                 }
 
                 return {};
@@ -117,7 +207,7 @@ private:
         output.send(result);
     }
 
-    void generateError(int resultCode, const atoms& args = {}){
+    void generatorError(int resultCode, const atoms& args = {}){
 
 
       //                    for(uint8_t i = 1; i < argc; i++){

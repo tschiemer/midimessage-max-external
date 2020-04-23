@@ -5,6 +5,7 @@
 #include "c74_min.h"
 #include <midimessage/stringifier.h>
 #include <midimessage/parser.h>
+#include <midimessage/commonccs.h>
 #include <assert.h>
 
 using namespace c74::min;
@@ -30,6 +31,12 @@ private:
             .Context = this,
             .Length = 0
       };
+
+    struct {
+      uint8_t msgCount = 0;
+      uint8_t channel = 0;
+      uint8_t values[4] = {0,0,0,0};
+    } m_nrpn;
 
 public:
     MIN_DESCRIPTION	{"Parse binary MIDI Message"};
@@ -62,8 +69,103 @@ public:
     };
 
 
+    attribute<bool> nrpnfilter { this, "nrpnfilter", false,
+                                           range { false, true },
+                                           title {"Filter/detect NRPN sequences"},
+                                           description {"Enable or disable filtering/detection of CC sequences ment as NRPN (default = off). NOTE: incomplete CC sequences simliar to 99-98-96 (increment), 99-98-97 (decrement), 99-98-6-38 (data entry) may be silently filtered out."}
+    };
+
     static void messageHandler(Message_t * msg, void * context){
         midimessage_parse * self = (midimessage_parse*)context;
+
+
+        if (self->nrpnfilter && msg->StatusClass == StatusClassControlChange) {
+            if (self->m_nrpn.msgCount == 0 && msg->Data.ControlChange.Controller == CcNonRegisteredParameterMSB) {
+                self->m_nrpn.channel = msg->Channel;
+                self->m_nrpn.values[0] = msg->Data.ControlChange.Value;
+                self->m_nrpn.msgCount = 1;
+                return;
+            }
+
+            uint8_t nrpnAction = 0;
+
+            if (self->m_nrpn.msgCount > 0 && self->m_nrpn.channel != msg->Channel){
+                self->m_nrpn.msgCount = 0;
+            } else {
+                if (self->m_nrpn.msgCount == 1) {
+                    if (msg->Data.ControlChange.Controller == CcNonRegisteredParameterLSB) {
+                      self->m_nrpn.values[1] = msg->Data.ControlChange.Value;
+                      self->m_nrpn.msgCount = 2;
+                      return;
+                    } else {
+                      self->m_nrpn.msgCount = 0;
+                    }
+                }
+                else if (self->m_nrpn.msgCount == 2) {
+                    if (msg->Data.ControlChange.Controller == CcDataEntryMSB) {
+                      self->m_nrpn.values[2] = msg->Data.ControlChange.Value;
+                      self->m_nrpn.msgCount = 3;
+                      return;
+                    } else if (msg->Data.ControlChange.Controller == CcDataIncrement) {
+                      self->m_nrpn.values[2] = msg->Data.ControlChange.Value;
+                      nrpnAction = CcDataIncrement;
+                    } else if (msg->Data.ControlChange.Controller == CcDataDecrement) {
+                      self->m_nrpn.values[2] = msg->Data.ControlChange.Value;
+                      nrpnAction = CcDataDecrement;
+                    } else {
+                      self->m_nrpn.msgCount = 0;
+                    }
+                }
+                else if (self->m_nrpn.msgCount == 3){
+                    if (msg->Data.ControlChange.Controller == CcDataEntryLSB) {
+                      self->m_nrpn.values[3] = msg->Data.ControlChange.Value;
+                      self->m_nrpn.msgCount = 4;
+                      nrpnAction = CcDataEntryMSB;
+                    } else {
+                      self->m_nrpn.msgCount = 0;
+                    }
+                }
+            }
+
+            if (nrpnAction != 0){
+
+                uint16_t controller = (self->m_nrpn.values[0] << 7) | self->m_nrpn.values[1];
+
+                uint8_t str[64];
+                uint8_t length;
+
+                if (nrpnAction == CcDataIncrement) {
+                    length = sprintf((char*)str, "nrpn %d %d inc %d\n", self->m_nrpn.channel, controller, self->m_nrpn.values[2]);
+                } else if (nrpnAction == CcDataDecrement) {
+                    length = sprintf((char*)str, "nrpn %d %d dec %d\n", self->m_nrpn.channel, controller, self->m_nrpn.values[2]);
+                } else {
+                    uint16_t value = (self->m_nrpn.values[2] << 7) | self->m_nrpn.values[3];
+                    length = sprintf((char*)str, "nrpn %d %d %d\n", self->m_nrpn.channel, controller, value);
+                }
+
+
+                uint8_t * cur = str;
+                atoms result;
+
+                for(auto i = 0; i < length; i++){
+                    if (str[i] == ' '){
+                        str[i] = '\0';
+
+                        result.push_back( (char*)cur);
+
+                        cur = &str[i+1];
+                    }
+                }
+
+                result.push_back( (char*)cur);
+
+                self->output(result);
+
+                self->m_nrpn.msgCount = 0;
+
+                return;
+            }
+        }
 
         uint8_t str[256];
 
