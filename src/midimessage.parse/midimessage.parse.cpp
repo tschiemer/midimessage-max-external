@@ -38,6 +38,21 @@ private:
       uint8_t values[4] = {0,0,0,0};
     } m_nrpn;
 
+    // thanks to https://stackoverflow.com/questions/45554639/is-there-a-way-to-check-if-a-string-can-be-a-float-in-c/45554836
+    bool isInteger( uint8_t * str ){
+      int ignore;
+      int len = 0;
+      int ret = sscanf((char*)str, "%i%n", &ignore, &len);
+      return (ret == 1 && !str[len]);
+    }
+
+    bool isFloat( uint8_t * str ){
+      float ignore;
+      int len = 0;
+      int ret = sscanf((char*)str, "%f%n", &ignore, &len);
+      return (ret == 1 && !str[len]);
+    }
+
 public:
     MIN_DESCRIPTION	{"Parse binary MIDI Message"};
     MIN_TAGS		{"midi"};
@@ -135,12 +150,12 @@ public:
                 uint8_t length;
 
                 if (nrpnAction == CcDataIncrement) {
-                    length = sprintf((char*)str, "nrpn %d %d inc %d\n", self->m_nrpn.channel, controller, self->m_nrpn.values[2]);
+                    length = sprintf((char*)str, "nrpn %d %d inc %d", self->m_nrpn.channel, controller, self->m_nrpn.values[2]);
                 } else if (nrpnAction == CcDataDecrement) {
-                    length = sprintf((char*)str, "nrpn %d %d dec %d\n", self->m_nrpn.channel, controller, self->m_nrpn.values[2]);
+                    length = sprintf((char*)str, "nrpn %d %d dec %d", self->m_nrpn.channel, controller, self->m_nrpn.values[2]);
                 } else {
                     uint16_t value = (self->m_nrpn.values[2] << 7) | self->m_nrpn.values[3];
-                    length = sprintf((char*)str, "nrpn %d %d %d\n", self->m_nrpn.channel, controller, value);
+                    length = sprintf((char*)str, "nrpn %d %d %d", self->m_nrpn.channel, controller, value);
                 }
 
 
@@ -151,13 +166,25 @@ public:
                     if (str[i] == ' '){
                         str[i] = '\0';
 
-                        result.push_back( (char*)cur);
+                        if (self->isInteger(cur)){
+                          result.push_back(atoi((char*)cur));
+                        } else if (self->isFloat(cur)){
+                          result.push_back(atoll((char*)cur));
+                        } else {
+                          result.push_back( (char*)cur);
+                        }
 
                         cur = &str[i+1];
                     }
                 }
 
-                result.push_back( (char*)cur);
+                if (self->isInteger(cur)){
+                  result.push_back(atoi((char*)cur));
+                } else if (self->isFloat(cur)){
+                  result.push_back(atoll((char*)cur));
+                } else {
+                  result.push_back( (char*)cur);
+                }
 
                 self->output(result);
 
@@ -182,13 +209,25 @@ public:
             if (str[i] == ' '){
                 str[i] = '\0';
 
-                result.push_back( (char*)cur);
+                if (self->isInteger(cur)){
+                  result.push_back(atoi((char*)cur));
+                } else if (self->isFloat(cur)){
+                  result.push_back(atoll((char*)cur));
+                } else {
+                  result.push_back( (char*)cur);
+                }
 
                 cur = &str[i+1];
             }
         }
 
-        result.push_back( (char*)cur);
+        if (self->isInteger(cur)){
+          result.push_back(atoi((char*)cur));
+        } else if (self->isFloat(cur)){
+          result.push_back(atoll((char*)cur));
+        } else {
+          result.push_back( (char*)cur);
+        }
 
         self->output(result);
     };
