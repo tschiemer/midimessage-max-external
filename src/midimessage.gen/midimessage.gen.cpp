@@ -69,90 +69,16 @@ public:
                 uint8_t ** argv = cstrings.data();
                 uint8_t argc = cstrings.size();
 
-                int resultCode = MessagefromArgs( &msg,  argc, argv );
+                int resultCode = StringifierResultGenericError;
 
-                if (StringifierResultOk != resultCode){
+                // if (strcmp((char*)firstArg[0], "nrpn") != 0){
+                 resultCode = MessagefromArgs( &msg,  argc, argv );
 
-
-//                    for(uint8_t i = 1; i < argc; i++){
-//                        argv[i][-1] = ' ';
-////        post("%d = [%s] of [%s]", i-1, argv[i-1], argv[0]);
-//                    }
-                    atoms err;
-                    err.reserve(args.size() + 1);
-
-                    switch (resultCode) {
-                        case StringifierResultGenericError:
-                            err.push_back("Generic error");
-                            break;
-                        case StringifierResultInvalidValue:
-                            err.push_back("Invalid value");
-                            break;
-                        case StringifierResultWrongArgCount:
-                            err.push_back("Wrong arg count");
-                            break;
-                        case StringifierResultNoInput:
-                            err.push_back("No input");
-                            break;
-
-                        case StringifierResultInvalidU4:
-                            err.push_back("Invalid U4/Nibble Value");
-                            break;
-                        case StringifierResultInvalidU7:
-                            err.push_back("Invalid U7 Value");
-                            break;
-                        case StringifierResultInvalidU14:
-                            err.push_back("Invalid U14 Value");
-                            break;
-                        case StringifierResultInvalidU21:
-                            err.push_back("Invalid U21 Value");
-                            break;
-                        case StringifierResultInvalidU28:
-                            err.push_back("Invalid U28 Value");
-                            break;
-                        case StringifierResultInvalidU35:
-                            err.push_back("Invalid U35 Value");
-                            break;
-                        case StringifierResultInvalidHex:
-                            err.push_back("Invalid Hex Value");
-                            break;
-                    }
-
-                    err.insert( err.end(), args.begin(), args.end() );
-
-                    error.send(err);
-
-                    return {};
-
+                if (resultCode == StringifierResultOk) {
+                    writeMidiPacket(&msg);
+                } else {
+                    generateError(resultCode, args);
                 }
-
-                // try to generate raw bytes from message template
-                uint8_t bytes[128];
-                uint8_t length = pack( bytes, &msg );
-
-                if (length == 0){
-                    return {};
-                }
-
-
-                uint8_t * start = bytes;
-
-                if (m_runningStatusEnabled && updateRunningStatus( &m_runningStatusState, bytes[0] )){
-                    start = &start[1];
-                    length--;
-                }
-
-
-                // convert final byte message into integer list and send to main output
-                atoms result;
-
-                for(auto i = 0; i < length; i++){
-                    result.push_back((int)start[i]);
-                }
-
-                output.send(result);
-
-
 
                 return {};
         }
@@ -161,6 +87,87 @@ public:
 private:
     bool m_runningStatusEnabled = false;
     uint8_t m_runningStatusState = MidiMessage_RunningStatusNotSet;
+
+    void writeMidiPacket( Message_t * msg ){
+
+        // try to generate raw bytes from message template
+        uint8_t bytes[128];
+        uint8_t length = pack( bytes, msg );
+
+        if (length == 0){
+            return;
+        }
+
+
+        uint8_t * start = bytes;
+
+        if (m_runningStatusEnabled && updateRunningStatus( &m_runningStatusState, bytes[0] )){
+            start = &start[1];
+            length--;
+        }
+
+
+        // convert final byte message into integer list and send to main output
+        atoms result;
+
+        for(auto i = 0; i < length; i++){
+            result.push_back((int)start[i]);
+        }
+
+        output.send(result);
+    }
+
+    void generateError(int resultCode, const atoms& args = {}){
+
+
+      //                    for(uint8_t i = 1; i < argc; i++){
+      //                        argv[i][-1] = ' ';
+      ////        post("%d = [%s] of [%s]", i-1, argv[i-1], argv[0]);
+      //                    }
+        atoms err;
+        err.reserve(args.size() + 1);
+
+        switch (resultCode) {
+            case StringifierResultGenericError:
+                err.push_back("Generic error");
+                break;
+            case StringifierResultInvalidValue:
+                err.push_back("Invalid value");
+                break;
+            case StringifierResultWrongArgCount:
+                err.push_back("Wrong arg count");
+                break;
+            case StringifierResultNoInput:
+                err.push_back("No input");
+                break;
+
+            case StringifierResultInvalidU4:
+                err.push_back("Invalid U4/Nibble Value");
+                break;
+            case StringifierResultInvalidU7:
+                err.push_back("Invalid U7 Value");
+                break;
+            case StringifierResultInvalidU14:
+                err.push_back("Invalid U14 Value");
+                break;
+            case StringifierResultInvalidU21:
+                err.push_back("Invalid U21 Value");
+                break;
+            case StringifierResultInvalidU28:
+                err.push_back("Invalid U28 Value");
+                break;
+            case StringifierResultInvalidU35:
+                err.push_back("Invalid U35 Value");
+                break;
+            case StringifierResultInvalidHex:
+                err.push_back("Invalid Hex Value");
+                break;
+        }
+
+        err.insert( err.end(), args.begin(), args.end() );
+
+        error.send(err);
+    }
 };
 
 
