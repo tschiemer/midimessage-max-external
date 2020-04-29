@@ -101,6 +101,13 @@ public:
                 self->m_nrpn.msgCount = 1;
                 return;
             }
+            if (self->m_nrpn.msgCount == 0 && msg->Data.ControlChange.Controller == CcNonRegisteredParameterLSB) {
+                self->m_nrpn.channel = msg->Channel;
+                self->m_nrpn.values[0] = 0;
+                self->m_nrpn.values[1] = msg->Data.ControlChange.Value;
+                self->m_nrpn.msgCount = 2;
+                return;
+            }
 
             uint8_t nrpnAction = 0;
 
