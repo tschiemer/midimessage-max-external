@@ -95,17 +95,14 @@ public:
 
 
         if (self->nrpnfilter && msg->StatusClass == StatusClassControlChange) {
-            if (self->m_nrpn.msgCount == 0 && msg->Data.ControlChange.Controller == CcNonRegisteredParameterMSB) {
+            if (self->m_nrpn.msgCount == 0 && (msg->Data.ControlChange.Controller == CcNonRegisteredParameterMSB || msg->Data.ControlChange.Controller == CcNonRegisteredParameterLSB)) {
                 self->m_nrpn.channel = msg->Channel;
-                self->m_nrpn.values[0] = msg->Data.ControlChange.Value;
                 self->m_nrpn.msgCount = 1;
-                return;
-            }
-            if (self->m_nrpn.msgCount == 0 && msg->Data.ControlChange.Controller == CcNonRegisteredParameterLSB) {
-                self->m_nrpn.channel = msg->Channel;
-                self->m_nrpn.values[0] = 0;
-                self->m_nrpn.values[1] = msg->Data.ControlChange.Value;
-                self->m_nrpn.msgCount = 2;
+                if (msg->Data.ControlChange.Controller == CcNonRegisteredParameterMSB){
+                  self->m_nrpn.values[0] = msg->Data.ControlChange.Value;
+                } else {
+                  self->m_nrpn.values[1] = msg->Data.ControlChange.Value;
+                }
                 return;
             }
 
@@ -115,8 +112,12 @@ public:
                 self->m_nrpn.msgCount = 0;
             } else {
                 if (self->m_nrpn.msgCount == 1) {
-                    if (msg->Data.ControlChange.Controller == CcNonRegisteredParameterLSB) {
-                      self->m_nrpn.values[1] = msg->Data.ControlChange.Value;
+                    if (msg->Data.ControlChange.Controller == CcNonRegisteredParameterLSB || msg->Data.ControlChange.Controller == CcNonRegisteredParameterMSB) {
+                      if (msg->Data.ControlChange.Controller == CcNonRegisteredParameterMSB){
+                        self->m_nrpn.values[0] = msg->Data.ControlChange.Value;
+                      } else {
+                        self->m_nrpn.values[1] = msg->Data.ControlChange.Value;
+                      }
                       self->m_nrpn.msgCount = 2;
                       return;
                     } else {
